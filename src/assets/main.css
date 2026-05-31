@@ -1,0 +1,110 @@
+@import './base.css';
+
+/* 强制隐藏所有可能的外层滚动条 */
+* {
+  box-sizing: border-box;
+}
+
+body, html {
+  overflow: hidden !important;
+  height: 100vh !important;
+  width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: fixed !important; /* 强制固定定位 */
+}
+
+#app {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-weight: normal;
+  overflow: hidden !important;
+  position: fixed !important; /* 强制固定定位 */
+  top: 0 !important;
+  left: 0 !important;
+}
+
+/* 全局滚动条样式 - 青色主题版本 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #00e6ff 0%, #00b3e6 100%);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.4);
+}
+
+/* 全局滚动条样式 - 青色透明版本（参考歌单广场） */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 255, 0.3);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 255, 0.5);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 255, 255, 0.7);
+}
+
+/* 滚动条角落透明 */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* 针对Firefox的滚动条样式 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 255, 255, 0.3) transparent;
+}
+
+a,
+.green {
+  text-decoration: none;
+  color: hsla(160, 100%, 37%, 1);
+  transition: 0.4s;
+  padding: 3px;
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(160, 100%, 37%, 0.2);
+  }
+}
+
+@media (min-width: 1024px) {
+  body {
+    display: flex;
+    place-items: center;
+  }
+
+  #app {
+    display: block;
+    padding: 0;
+    width: 100vw;
+  }
+}
