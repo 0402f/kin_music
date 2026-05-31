@@ -33,3 +33,4 @@ pnpm build
 ```sh
 pnpm lint
 ```
+# kin_music
