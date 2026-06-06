@@ -216,7 +216,9 @@ server: {
 
 | 推荐流 | 曲库浏览 | 歌单广场 |
 |:---:|:---:|:---:|
-| ![推荐页](screenshots/01-recommend.png) | ![曲库页](screenshots/02-selected.png) | ![歌单广场](screenshots/03-playlist-square.png) |
+
+<img width="561" height="1216" alt="image" src="https://github.com/user-attachments/assets/2288f7fe-145e-4c33-8b02-cbfa9a334070" />
+
 
 | AI 音轨 | 上传歌曲 | 个人中心 |
 |:---:|:---:|:---:|
