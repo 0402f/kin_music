@@ -223,7 +223,8 @@ server: {
 
 | AI 音轨 | 上传歌曲 | 个人中心 |
 |:---:|:---:|:---:|
-| ![AI音轨](screenshots/04-ai-track.png) | ![上传](screenshots/05-upload.png) |<img width="561" height="1216" alt="image" src="https://github.com/user-attachments/assets/6e5caf7f-06d5-4e7d-a510-af819a09fb2b" />|
+|<img width="561" height="1216" alt="image" src="https://github.com/user-attachments/assets/b9d914b3-5931-4c33-ad1e-1cddd5b60d51" />|<img width="561" height="1216" alt="image" src="https://github.com/user-attachments/assets/68bbb668-d9f5-4791-bb57-d9422cc0b66d" />
+|<img width="561" height="1216" alt="image" src="https://github.com/user-attachments/assets/6e5caf7f-06d5-4e7d-a510-af819a09fb2b" />|
 
 | 我的收藏 | 沉浸式歌词 |
 |:---:|:---:|
