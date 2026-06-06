@@ -216,8 +216,7 @@ server: {
 
 | 推荐流 | 曲库浏览 | 歌单广场 |
 |:---:|:---:|:---:|
-
-<img width="561" height="1216" alt="image" src="https://github.com/user-attachments/assets/2288f7fe-145e-4c33-8b02-cbfa9a334070" /><img width="561" height="1216" alt="image" src="https://github.com/user-attachments/assets/ad5f87fc-fda0-494f-9ad8-e2427f2c6e2e" /><img width="561" height="1216" alt="image" src="https://github.com/user-attachments/assets/64a45d7f-983d-4ddc-a370-867a2f728934" />
+| <img width="561" height="1216" alt="image" src="https://github.com/user-attachments/assets/130db271-2277-494b-a93b-733c86670062" />| <img width="561" height="1216" alt="image" src="https://github.com/user-attachments/assets/b30b06e2-82e8-4442-acf0-7c100bc710f2" />| <img width="561" height="1216" alt="image" src="https://github.com/user-attachments/assets/385dca5a-840e-4677-8ecc-9a52ab3f3a3a" />|
 
 
 
