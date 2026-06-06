@@ -227,7 +227,7 @@ server: {
 
 | 我的收藏 | 沉浸式歌词 |
 |:---:|:---:|
-| ![收藏](screenshots/07-collect.png) | ![歌词](screenshots/08-lyrics.png) |
+|<img width="561" height="1216" alt="image" src="https://github.com/user-attachments/assets/ef56c6aa-6447-4f42-9ecb-deb6239c774a" />|<img width="561" height="1216" alt="image" src="https://github.com/user-attachments/assets/2823c7c6-b235-43e1-99fd-bb8642dbb289" />|
 
 </div>
 
