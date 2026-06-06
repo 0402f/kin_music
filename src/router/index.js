@@ -3,12 +3,13 @@ import RecommendView from '../views/RecommendView.vue'
 import SelectedView from '../views/SelectedView.vue'
 import LikeView from '../views/LikeView.vue'
 import CollectView from '../views/CollectView.vue'
-import FollowView from '../views/DynamicView.vue'
 import LyricsView from '../views/LyricsView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import CommentView from '../views/CommentView.vue'
 // 添加关注列表页面导入
 import FollowListView from '../views/FollowListView.vue'
+import FollowView from '../views/DynamicView.vue'
+import { useUserStore } from '@/stores/user'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -58,6 +59,7 @@ const router = createRouter({
       path: '/profile',
       name: 'profile',
       component: ProfileView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/playlist/:id',
@@ -75,8 +77,18 @@ const router = createRouter({
       component: CommentView,
     },
     {
+      path: '/category',
+      name: 'Category',
+      component: () => import('../views/CategoryView.vue'),
+    },
+    {
+      path: '/search',
+      name: 'Search',
+      component: () => import('../views/SearchView.vue'),
+    },
+    {
       path: '/ai-track',
-      name: 'AITrack',
+      name: 'Lingyin',
       component: () => import('../views/AITrackView.vue'),
     },
     {
@@ -90,17 +102,25 @@ const router = createRouter({
       component: () => import('../views/PlaylistSquareView.vue'),
     },
     {
-      path: '/Dynamic',
-      name: 'Dynamic',
-      component: () => import('../views/DynamicView.vue'),
-    },
-    {
       path: '/message/:userId',
       name: 'Message',
       component: () => import('@/views/MessageView.vue'),
       meta: { requiresAuth: true }
     }
   ],
+})
+
+// 路由守卫：需要登录的页面自动弹出登录弹窗
+router.beforeEach((to, from, next) => {
+  if (to.meta.requiresAuth) {
+    const userStore = useUserStore()
+    if (!userStore.isLoggedIn) {
+      userStore.openAuthModal()
+      next(false)
+      return
+    }
+  }
+  next()
 })
 
 export default router

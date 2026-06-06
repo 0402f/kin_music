@@ -28,3 +28,6 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+# Music proxy secrets
+music-proxy/.netease-cookie

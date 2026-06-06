@@ -1,109 +1,68 @@
 <template>
   <div class="playlist-edit-view">
-    <div class="content-container">
-      <div v-if="loading" class="loading">加载中...</div>
+    <!-- 返回按钮 -->
+    <button class="pe-back" @click="cancelEdit">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>返回</span>
+    </button>
 
-      <div v-else-if="error" class="error">
-        {{ error }}
-      </div>
+    <div v-if="loading" class="loading">加载中...</div>
+    <div v-else-if="error" class="error">{{ error }}</div>
 
-      <div v-else class="edit-playlist">
-        <h2 class="edit-title">编辑歌单信息</h2>
+    <div v-else class="edit-body">
+      <h2 class="edit-title">编辑歌单信息</h2>
 
-        <div class="edit-container">
-          <div class="edit-form">
-            <div class="form-group">
-              <label>名称：</label>
-              <input
-                v-model="editForm.name"
-                type="text"
-                class="form-input"
-                placeholder="请输入歌单名称"
-                maxlength="40"
-              />
-              <span class="char-count">{{ (editForm.name || '').length }}/40</span>
+      <div class="edit-container">
+        <!-- 封面 -->
+        <div class="edit-cover">
+          <div class="cover-preview" @click="triggerCoverUpload">
+            <img v-if="coverPreviewUrl || playlistInfo.coverUrl" :src="coverPreviewUrl || playlistInfo.coverUrl" :alt="playlistInfo.name" />
+            <div v-else class="cover-placeholder">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="rgba(255,255,255,0.2)"><path d="M9 18V5L21 12L9 18Z"/></svg>
             </div>
+            <div class="cover-overlay"><span>更换封面</span></div>
+          </div>
+          <input id="cover-upload" type="file" accept="image/*" style="display:none" @change="handleCoverChange" />
+        </div>
 
-            <div class="form-group">
-              <label>简介：</label>
-              <textarea
-                v-model="editForm.description"
-                class="form-textarea"
-                placeholder="请输入歌单简介"
-                maxlength="1000"
-                rows="8"
-              ></textarea>
-              <span class="char-count">{{ (editForm.description || '').length }}/1000</span>
-            </div>
+        <!-- 表单 -->
+        <div class="edit-form">
+          <div class="form-group">
+            <label>名称</label>
+            <input v-model="editForm.name" type="text" class="form-input" placeholder="歌单名称" maxlength="40" />
+            <span class="char-count">{{ (editForm.name || '').length }}/40</span>
+          </div>
 
-            <div class="form-group">
-              <label>标签：</label>
-              <div class="tag-selector">
-                <button
-                  v-for="tag in tagOptions"
-                  :key="tag"
-                  type="button"
-                  :class="['tag-option', { active: editForm.tag === tag }]"
-                  @click="editForm.tag = tag"
-                >
-                  {{ tag }}
-                </button>
-              </div>
-            </div>
+          <div class="form-group">
+            <label>简介</label>
+            <textarea v-model="editForm.description" class="form-textarea" placeholder="歌单简介" maxlength="1000" rows="4"></textarea>
+            <span class="char-count">{{ (editForm.description || '').length }}/1000</span>
+          </div>
 
-            <div class="form-group">
-              <label class="checkbox-label-simple">
-                <input
-                  :checked="editForm.isPublic === 1"
-                  @change="editForm.isPublic = $event.target.checked ? 1 : 0"
-                  type="checkbox"
-                  class="checkbox-native"
-                />
-                设为公开歌单
-              </label>
-              <div class="privacy-desc">取消勾选后，歌单将变为隐私歌单，只有你自己可以看到</div>
-            </div>
-
-            <div class="form-actions">
-              <button class="save-btn" @click="saveEdit">保存</button>
-              <button class="cancel-btn" @click="cancelEdit">取消</button>
+          <div class="form-group">
+            <label>标签</label>
+            <div class="tag-selector">
+              <button v-for="tag in tagOptions" :key="tag" type="button" :class="['tag-option', { active: editForm.tag === tag }]" @click="editForm.tag = tag">{{ tag }}</button>
             </div>
           </div>
 
-          <div class="edit-cover">
-            <div class="cover-preview" @click="triggerCoverUpload">
-              <img
-                v-if="coverPreviewUrl || playlistInfo.coverUrl"
-                :src="coverPreviewUrl || playlistInfo.coverUrl"
-                :alt="playlistInfo.name"
-              />
-              <div v-else class="cover-placeholder">
-                <span class="music-icon">🎵</span>
-              </div>
-              <div class="cover-overlay">
-                <span class="upload-text">点击更换封面</span>
-              </div>
-            </div>
-            <input
-              id="cover-upload"
-              type="file"
-              accept="image/*"
-              style="display: none"
-              @change="handleCoverChange"
-            />
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input :checked="editForm.isPublic === 1" @change="editForm.isPublic = $event.target.checked ? 1 : 0" type="checkbox" />
+              设为公开歌单
+            </label>
+            <p class="privacy-desc">取消后仅自己可见</p>
+          </div>
+
+          <div class="form-actions">
+            <button class="save-btn" @click="saveEdit">保存</button>
+            <button class="cancel-btn" @click="cancelEdit">取消</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Toast组件 -->
-    <Toast
-      :visible="showToast"
-      :message="toastMessage"
-      :type="toastType"
-      :fixed="true"
-      @close="closeToast"
-    />
+    <Toast :visible="showToast" :message="toastMessage" :type="toastType" @close="closeToast" />
   </div>
 </template>
 
@@ -119,454 +78,197 @@ const playlistId = route.params.id
 
 const loading = ref(true)
 const error = ref('')
-// 添加Toast相关状态
 const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref('error')
 
-const playlistInfo = ref({
-  id: '',
-  name: '',
-  creator: '',
-  createTime: '',
-  coverUrl: '',
-  description: '',
-  songCount: 0,
-  playCount: 0,
-  collectCount: 0,
-  user: null,
-})
+const playlistInfo = ref({ id: '', name: '', creator: '', createTime: '', coverUrl: '', description: '', songCount: 0, playCount: 0, collectCount: 0, user: null })
 
-const editForm = ref({
-  name: '',
-  description: '',
-  tag: '',
-  isPublic: 1,
-  coverFile: null, // 添加封面文件字段
-})
-
-// 添加封面预览URL
+const editForm = ref({ name: '', description: '', tag: '', isPublic: 1, coverFile: null })
 const coverPreviewUrl = ref('')
-
-// 处理封面文件选择
-const handleCoverChange = (event) => {
-  const file = event.target.files[0]
-  if (file) {
-    editForm.value.coverFile = file
-    // 创建预览URL
-    coverPreviewUrl.value = URL.createObjectURL(file)
-  }
-}
-
-// 触发文件选择
-const triggerCoverUpload = () => {
-  document.getElementById('cover-upload').click()
-}
-
-// 在现有的变量定义后添加
 const tagOptions = ['流行', '摇滚', '民谣', '电子', '古典', '爵士', '华语', '欧美', '说唱']
 
-// 获取歌单详情
+const handleCoverChange = (e) => {
+  const file = e.target.files[0]
+  if (file) { editForm.value.coverFile = file; coverPreviewUrl.value = URL.createObjectURL(file) }
+}
+const triggerCoverUpload = () => document.getElementById('cover-upload').click()
+
 const fetchPlaylistDetail = async () => {
   try {
     loading.value = true
     const response = await getPlaylistDetail(playlistId)
-
-    // 正确提取歌单数据
-    const playlistData = response.data
+    const d = response.data
     playlistInfo.value = {
-      id: playlistData.id,
-      name: playlistData.name,
-      creator: playlistData.user?.username || '',
-      createTime: playlistData.createTime,
-      coverUrl: playlistData.coverFileUrl,
-      description: playlistData.description,
-      songCount: playlistData.songCount,
-      playCount: playlistData.playCount,
-      collectCount: playlistData.collectCount,
-      user: playlistData.user,
+      id: d.id, name: d.name, creator: d.user?.username || '', createTime: d.createTime,
+      coverUrl: d.coverFileUrl, description: d.description, songCount: d.songCount,
+      playCount: d.playCount, collectCount: d.collectCount, user: d.user,
     }
-
-    // 初始化编辑表单
     editForm.value = {
-      name: playlistData.name || '',
-      description: playlistData.description || '',
-      tag: Array.isArray(playlistData.tags) ? playlistData.tags.join(',') : playlistData.tags || '',
-      isPublic: playlistData.isPublic !== undefined ? playlistData.isPublic : 1,
+      name: d.name || '', description: d.description || '',
+      tag: Array.isArray(d.tags) ? d.tags.join(',') : d.tags || '',
+      isPublic: d.isPublic !== undefined ? d.isPublic : 1,
     }
-  } catch (err) {
-    console.error('获取歌单详情失败:', err)
-    error.value = '获取歌单详情失败'
-  } finally {
-    loading.value = false
-  }
+  } catch (err) { error.value = '获取歌单详情失败' }
+  finally { loading.value = false }
 }
 
-// 保存编辑
 const saveEdit = async () => {
   try {
-    // 准备更新数据
     const updateData = {
-      name: editForm.value.name,
-      description: editForm.value.description,
-      tags: editForm.value.tag,
-      isPublic: editForm.value.isPublic,
+      name: editForm.value.name, description: editForm.value.description,
+      tags: editForm.value.tag, isPublic: editForm.value.isPublic,
     }
-
-    // 如果有新的封面文件，添加到数据中
-    if (editForm.value.coverFile) {
-      updateData.coverFile = editForm.value.coverFile
-    }
-
-    console.log('保存编辑:', updateData)
-
-    // 调用更新歌单的API
+    if (editForm.value.coverFile) updateData.coverFile = editForm.value.coverFile
     await updatePlaylist(playlistId, updateData)
-
-    console.log('歌单更新成功')
-
-    // 显示成功提示
-    toastMessage.value = '保存成功'
-    toastType.value = 'success'
-    showToast.value = true
-
-    // 延迟跳转，让用户看到成功提示
-    setTimeout(() => {
-      // 直接返回上一页，避免在路由栈中留下编辑页记录
-      router.go(-1)
-    }, 1000)
-  } catch (err) {
-    console.error('保存失败:', err)
-    // 使用Toast显示错误信息，而不是设置error状态
-    toastMessage.value = '保存失败，请重试'
-    toastType.value = 'error'
-    showToast.value = true
+    toastMessage.value = '保存成功'; toastType.value = 'success'; showToast.value = true
+    setTimeout(() => router.go(-1), 1000)
+  } catch {
+    toastMessage.value = '保存失败，请重试'; toastType.value = 'error'; showToast.value = true
   }
 }
 
-// 添加关闭Toast的方法
-const closeToast = () => {
-  showToast.value = false
-}
+const closeToast = () => { showToast.value = false }
+const cancelEdit = () => router.go(-1)
 
-// 取消编辑
-const cancelEdit = () => {
-  // 直接返回上一页
-  router.go(-1)
-}
-
-onMounted(() => {
-  fetchPlaylistDetail()
-})
+onMounted(() => fetchPlaylistDetail())
 </script>
 
 <style scoped>
 .playlist-edit-view {
-  /* 固定在导航栏和播放器之间 */
-  padding: 0;
-  width: 100vw;
-  height: calc(100vh - 160px); /* 减去顶部导航栏和底部播放器的高度 */
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-  color: #ffffff;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-  overflow: hidden; /* 禁用滚动条 */
+  width: 100%; min-height: 100vh;
+  background: linear-gradient(160deg, #080c18, #0f1428, #0a0e1f);
+  color: #f1f5f9;
   box-sizing: border-box;
+  overflow-y: auto;
+  padding: 16px 24px 120px;
 }
 
-/* 添加内容包装器来控制内容区域 */
-.content-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  height: 100%;
-  overflow: hidden; /* 确保内容不会溢出 */
-  display: flex;
-  flex-direction: column;
+/* 返回 */
+.pe-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: none;
+  color: rgba(255,255,255,0.5); cursor: pointer;
+  font-size: 14px; padding: 4px 0; margin-bottom: 16px;
 }
+.pe-back:hover { color: #fff; }
 
-.loading,
-.error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  font-size: 18px;
-  color: #ffffff;
-}
+/* 加载/错误 */
+.loading, .error { display: flex; align-items: center; justify-content: center; height: 60vh; font-size: 16px; }
+.error { color: #f87171; }
 
-.error {
-  color: #ff6b6b;
-}
-
-.edit-playlist {
-  padding: 20px;
-  height: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
+.edit-body { max-width: 720px; margin: 0 auto; }
 
 .edit-title {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 20px; /* 减少底部边距以节省空间 */
-  background: linear-gradient(135deg, #00ffff 0%, #0080ff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 22px; font-weight: 700; margin: 0 0 20px;
+  background: linear-gradient(135deg, #00ffff, #818cf8);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
-  flex-shrink: 0; /* 防止标题被压缩 */
 }
 
 .edit-container {
-  display: flex;
-  gap: 40px;
-  max-width: 1000px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  display: flex; gap: 32px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.05);
   border-radius: 16px;
-  backdrop-filter: blur(10px);
-  padding: 20px; /* 减少内边距以节省空间 */
-  margin: 0 auto;
-  flex: 1; /* 占用剩余空间 */
-  overflow: hidden;
+  padding: 24px;
 }
 
-.edit-form {
-  flex: 1;
-}
-
-.form-group {
-  margin-bottom: 24px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.form-input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.2s;
-  background: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
-  box-sizing: border-box;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #00ffff;
-  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
-}
-
-.form-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.form-textarea {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  border-radius: 6px;
-  font-size: 14px;
-  resize: vertical;
-  min-height: 120px;
-  transition: border-color 0.2s;
-  background: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
-  box-sizing: border-box;
-}
-
-.form-textarea:focus {
-  outline: none;
-  border-color: #00ffff;
-  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
-}
-
-.form-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.char-count {
-  display: block;
-  text-align: right;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-  margin-top: 4px;
-}
-
-.form-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 30px;
-}
-
-.save-btn {
-  background: linear-gradient(135deg, #00ffff 0%, #0080ff 100%);
-  color: #000000;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 25px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 255, 255, 0.3);
-}
-
-.save-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 255, 255, 0.4);
-}
-
-.cancel-btn {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 12px 24px;
-  border-radius: 25px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.cancel-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
-}
-
-.edit-cover {
-  flex-shrink: 0;
-}
-
+/* 封面 */
+.edit-cover { flex-shrink: 0; }
 .cover-preview {
-  width: 200px;
-  height: 200px;
-  border-radius: 12px;
-  overflow: hidden;
-  position: relative;
-  cursor: pointer;
-  transition: transform 0.2s;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  width: 180px; height: 180px; border-radius: 14px;
+  overflow: hidden; position: relative; cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.08);
 }
-
-.cover-preview:hover {
-  transform: scale(1.02);
-}
-
-.cover-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
+.cover-preview img { width: 100%; height: 100%; object-fit: cover; }
 .cover-placeholder {
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #00ffff;
-  font-size: 48px;
+  width: 100%; height: 100%; background: rgba(255,255,255,0.03);
+  display: flex; align-items: center; justify-content: center;
 }
-
 .cover-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.2s;
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.2s; font-size: 13px; color: #0ff;
 }
+.cover-preview:hover .cover-overlay { opacity: 1; }
 
-.cover-preview:hover .cover-overlay {
-  opacity: 1;
+/* 表单 */
+.edit-form { flex: 1; min-width: 0; }
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; margin-bottom: 6px; font-size: 13px; color: rgba(255,255,255,0.5); }
+
+.form-input, .form-textarea {
+  width: 100%; padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; font-size: 14px;
+  background: rgba(255,255,255,0.04); color: #fff;
+  box-sizing: border-box; outline: none;
+  transition: border-color 0.2s;
 }
-
-.upload-text {
-  color: #00ffff;
-  font-size: 14px;
-  text-align: center;
+.form-input:focus, .form-textarea:focus {
+  border-color: rgba(0,255,255,0.3);
+  box-shadow: 0 0 0 3px rgba(0,255,255,0.06);
 }
+.form-textarea { resize: vertical; min-height: 80px; }
 
-.checkbox-label-simple {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
-}
+.char-count { display: block; text-align: right; font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 4px; }
 
-.checkbox-native {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: #00ffff;
-}
-
-.privacy-desc {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-  margin-top: 4px;
-  margin-left: 24px;
-}
-
-/* 标签选择器样式 */
-.tag-selector {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-
+/* 标签 */
+.tag-selector { display: flex; flex-wrap: wrap; gap: 8px; }
 .tag-option {
-  padding: 8px 16px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  outline: none;
+  padding: 7px 14px; border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px; background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.5); font-size: 13px; cursor: pointer;
+  transition: all 0.2s;
 }
-
-.tag-option:hover {
-  border-color: rgba(0, 255, 255, 0.5);
-  background: rgba(0, 255, 255, 0.1);
-  transform: translateY(-1px);
-  color: #00ffff;
-}
-
+.tag-option:hover { border-color: rgba(0,255,255,0.3); color: #0ff; }
 .tag-option.active {
-  background: rgba(0, 255, 255, 0.2);
-  border-color: #00ffff;
-  color: #00ffff;
-  box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
+  background: rgba(0,255,255,0.12); border-color: rgba(0,255,255,0.5);
+  color: #0ff; font-weight: 600;
 }
 
-.tag-option.active:hover {
-  background: rgba(0, 255, 255, 0.3);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0, 255, 255, 0.4);
+/* 公开/隐私 */
+.checkbox-label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; color: rgba(255,255,255,0.7); cursor: pointer;
+}
+.checkbox-label input { width: 16px; height: 16px; accent-color: #0ff; }
+.privacy-desc { font-size: 12px; color: rgba(255,255,255,0.3); margin: 4px 0 0 24px; }
+
+/* 按钮 */
+.form-actions { display: flex; gap: 10px; margin-top: 24px; }
+.save-btn, .cancel-btn {
+  flex: 1; padding: 13px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s;
+}
+.save-btn {
+  background: linear-gradient(135deg, #00ffff, #818cf8); color: #050510;
+}
+.save-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,255,255,0.25); }
+.cancel-btn {
+  background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.08);
+}
+.cancel-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+/* ==================== 响应式 ==================== */
+@media (min-width: 769px) {
+  .playlist-edit-view { padding: 24px 40px 40px; max-width: 900px; margin: 0 auto; min-height: auto; }
+  .cover-preview { width: 220px; height: 220px; }
+}
+
+@media (max-width: 768px) {
+  .playlist-edit-view { padding: 12px 16px 110px; }
+  .edit-container { flex-direction: column; align-items: center; gap: 20px; padding: 20px; }
+  .cover-preview { width: 160px; height: 160px; border-radius: 12px; }
+  .edit-title { font-size: 20px; }
+}
+
+@media (max-width: 480px) {
+  .playlist-edit-view { padding: 10px 12px 100px; }
+  .edit-container { padding: 16px; border-radius: 12px; }
+  .cover-preview { width: 140px; height: 140px; }
+  .edit-title { font-size: 18px; }
+  .tag-option { padding: 6px 12px; font-size: 12px; }
+  .form-input, .form-textarea { padding: 10px 12px; font-size: 13px; }
 }
 </style>

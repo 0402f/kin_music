@@ -200,6 +200,28 @@ server: {
 
 ---
 
+## 📸 运行截图
+
+> 以下为移动端（iPhone 14 Pro）实际运行效果
+
+<div align="center">
+
+| 推荐流 | 曲库浏览 | 歌单广场 |
+|:---:|:---:|:---:|
+| ![推荐页](screenshots/01-recommend.png) | ![曲库页](screenshots/02-selected.png) | ![歌单广场](screenshots/03-playlist-square.png) |
+
+| AI 音轨 | 上传歌曲 | 个人中心 |
+|:---:|:---:|:---:|
+| ![AI音轨](screenshots/04-ai-track.png) | ![上传](screenshots/05-upload.png) | ![个人中心](screenshots/06-profile.png) |
+
+| 我的收藏 | 沉浸式歌词 |
+|:---:|:---:|
+| ![收藏](screenshots/07-collect.png) | ![歌词](screenshots/08-lyrics.png) |
+
+</div>
+
+---
+
 ## 📱 页面路由
 
 | 路径 | 页面 | 说明 |

@@ -1,458 +1,139 @@
 <template>
-  <div class="playlist-view">
-    <div v-if="loading" class="loading">加载中...</div>
+  <div class="pv-page">
+    <div v-if="loading" class="pv-loading">加载中...</div>
+    <div v-else-if="error" class="pv-error">{{ error }}</div>
 
-    <div v-else-if="error" class="error">
-      {{ error }}
-    </div>
-
-    <div v-else class="playlist-content">
+    <div v-else class="pv-main">
       <!-- 编辑模式 -->
-      <div v-if="isEditing" class="edit-playlist">
-        <h2 class="edit-title">编辑歌单信息</h2>
-
-        <div class="edit-container">
-          <div class="edit-form">
-            <div class="form-group">
-              <label>名称：</label>
-              <input
-                v-model="editForm.name"
-                type="text"
-                class="form-input"
-                placeholder="请输入歌单名称"
-                maxlength="40"
-              />
-              <span class="char-count">{{ editForm.name.length }}/40</span>
-            </div>
-
-            <div class="form-group">
-              <label>简介：</label>
-              <textarea
-                v-model="editForm.description"
-                class="form-textarea"
-                placeholder="请输入歌单简介"
-                maxlength="1000"
-                rows="8"
-              ></textarea>
-              <span class="char-count">{{ editForm.description.length }}/1000</span>
-            </div>
-
-            <div class="form-group">
-              <label>标签：</label>
-              <select v-model="editForm.tag" class="form-select">
-                <option value="">选择...</option>
-                <option value="流行">流行</option>
-                <option value="摇滚">摇滚</option>
-                <option value="民谣">民谣</option>
-                <option value="电子">电子</option>
-                <option value="古典">古典</option>
-                <option value="爵士">爵士</option>
-              </select>
-            </div>
-
-            <div class="form-actions">
-              <button class="save-btn" @click="saveEdit">保存</button>
-              <button class="cancel-btn" @click="cancelEdit">取消</button>
-            </div>
-          </div>
-
-          <div class="edit-cover">
-            <div class="cover-preview">
-              <img
-                v-if="playlistInfo.coverUrl"
-                :src="playlistInfo.coverUrl"
-                :alt="playlistInfo.name"
-              />
-              <div v-else class="cover-placeholder">
-                <span class="music-icon">🎵</span>
-              </div>
-            </div>
-          </div>
+      <div v-if="isEditing" class="pv-edit">
+        <h2 class="pv-edit-title">编辑歌单</h2>
+        <div class="pv-edit-form">
+          <div class="pv-field"><label>名称</label><input v-model="editForm.name" type="text" maxlength="40" /><span class="pv-count">{{ editForm.name.length }}/40</span></div>
+          <div class="pv-field"><label>简介</label><textarea v-model="editForm.description" maxlength="1000" rows="4"></textarea><span class="pv-count">{{ editForm.description.length }}/1000</span></div>
+          <div class="pv-field"><label>标签</label><select v-model="editForm.tag"><option value="">选择</option><option value="流行">流行</option><option value="摇滚">摇滚</option><option value="民谣">民谣</option><option value="电子">电子</option><option value="古典">古典</option><option value="爵士">爵士</option></select></div>
+          <div class="pv-edit-cover"><img v-if="playlistInfo.coverUrl" :src="playlistInfo.coverUrl" /><div v-else class="pv-cover-empty">🎵</div></div>
+          <div class="pv-edit-actions"><button class="pv-btn pv-btn-ok" @click="saveEdit">保存</button><button class="pv-btn" @click="cancelEdit">取消</button></div>
         </div>
       </div>
 
-      <!-- 正常显示模式 -->
-      <div v-else class="playlist-container">
-        <!-- 上半部分：歌单信息 -->
-        <div class="playlist-header">
-          <div class="playlist-cover">
-            <img
-              v-if="playlistInfo.coverUrl"
-              :src="playlistInfo.coverUrl"
-              :alt="playlistInfo.name"
-              @error="handleCoverError"
-            />
-            <div v-else class="cover-placeholder">
-              <span class="music-icon">🎵</span>
+      <!-- 正常模式 -->
+      <template v-else>
+        <!-- 头部 -->
+        <div class="pv-header">
+          <button class="pv-back" @click="router.go(-1)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <img v-if="playlistInfo.coverUrl" :src="playlistInfo.coverUrl" class="pv-cover" @error="handleCoverError" />
+          <div v-else class="pv-cover pv-cover-empty">🎵</div>
+          <div class="pv-header-info">
+            <h1 class="pv-title">{{ playlistInfo.name }}<button v-if="canEdit" class="pv-edit-btn" @click="handleEdit"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button></h1>
+            <div class="pv-creator" v-if="playlistInfo.creator"><img v-if="playlistInfo.user?.avatarUrl" :src="playlistInfo.user.avatarUrl" class="pv-creator-avatar" />{{ playlistInfo.creator }}</div>
+            <div class="pv-meta">
+              <span v-if="playlistInfo.playCount">{{ playlistInfo.playCount }} 次播放</span>
+              <span v-if="playlistInfo.collectCount">{{ playlistInfo.collectCount }} 收藏</span>
+              <span>{{ playlistInfo.isPublic ? '公开' : '私密' }}</span>
+              <span v-if="playlistInfo.createTime">{{ formatDate(playlistInfo.createTime) }}创建</span>
             </div>
-          </div>
-
-          <div class="playlist-info">
-            <div class="playlist-name-container">
-              <h1 class="playlist-name">{{ playlistInfo.name }}</h1>
-              <!-- 只有当前用户是歌单创建者时才显示编辑按钮 -->
-              <button v-if="canEdit" class="edit-btn" @click="handleEdit">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path
-                    d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div class="playlist-meta">
-              <div v-if="playlistInfo.creator" class="creator-info">
-                <img
-                  v-if="playlistInfo.user?.avatarUrl"
-                  :src="playlistInfo.user.avatarUrl"
-                  :alt="playlistInfo.creator"
-                  class="creator-avatar"
-                />
-                <span class="creator-name">{{ playlistInfo.creator }}</span>
-              </div>
-              <p v-if="playlistInfo.createTime" class="create-time">
-                {{ formatDate(playlistInfo.createTime) }}创建
-              </p>
-              <div class="playlist-stats">
-                <span class="stat-item"
-                  >{{ playlistInfo.songCount || musicList.length }} 首歌曲</span
-                >
-                <span v-if="playlistInfo.playCount" class="stat-item">
-                  播放 {{ playlistInfo.playCount }} 次
-                </span>
-                <span v-if="playlistInfo.collectCount" class="stat-item">
-                  收藏 {{ playlistInfo.collectCount }} 次
-                </span>
-                <!-- 添加公开/私密状态显示 -->
-                <span class="stat-item privacy-status" :class="{ private: !playlistInfo.isPublic }">
-                  <svg
-                    v-if="!playlistInfo.isPublic"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path
-                      d="M6 10V8C6 5.79086 7.79086 4 10 4H14C16.2091 4 18 5.79086 18 8V10"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    />
-                    <rect
-                      x="4"
-                      y="10"
-                      width="16"
-                      height="10"
-                      rx="2"
-                      fill="currentColor"
-                      fill-opacity="0.8"
-                    />
-                  </svg>
-                  <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                      d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L13.5 2.5L16.17 5.17C15.24 5.06 14.32 5 13.4 5H10.6C5.2 5 1 9.2 1 14.6V21H23V14.6C23 11.9 21.1 9.7 18.6 9.2L21 9Z"
-                    />
-                  </svg>
-                  {{ playlistInfo.isPublic ? '公开' : '私密' }}
-                </span>
-              </div>
-              <p v-if="playlistInfo.description" class="description">
-                {{ playlistInfo.description }}
-              </p>
-              <div v-if="playlistInfo.tags && playlistInfo.tags.length > 0" class="playlist-tags">
-                <span class="tags-label">标签：</span>
-                <span v-for="tag in playlistInfo.tags" :key="tag" class="tag-item">
-                  {{ tag }}
-                </span>
-              </div>
-            </div>
-
-            <div class="playlist-actions">
-              <button class="play-all-btn" @click="playAll">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                播放全部
-              </button>
-              <button
-                class="collect-btn"
-                :class="{ collected: isCollected }"
-                @click="toggleCollect"
-              >
-                <span class="heart">{{ isCollected ? '❤️' : '🤍' }}</span>
-                {{ isCollected ? '已收藏' : '收藏' }}
-              </button>
+            <div class="pv-tags" v-if="playlistInfo.tags?.length"><span v-for="t in playlistInfo.tags" :key="t" class="pv-tag">{{ t }}</span></div>
+            <p class="pv-desc" v-if="playlistInfo.description">{{ playlistInfo.description }}</p>
+            <div class="pv-actions">
+              <button class="pv-btn pv-btn-play" @click="playAll"><svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>播放全部</button>
+              <button class="pv-btn pv-btn-collect" :class="{ on: isCollected }" @click="toggleCollect">{{ isCollected ? '已收藏' : '收藏' }}</button>
             </div>
           </div>
         </div>
 
-        <!-- 下半部分：Tab切换区域 -->
-        <div class="playlist-tabs">
-          <div class="tab-header">
-            <button
-              v-for="tab in tabs"
-              :key="tab.key"
-              :class="['tab-btn', { active: activeTab === tab.key }]"
-              @click="activeTab = tab.key"
-            >
-              <span class="tab-icon">{{ tab.icon }}</span>
-              <span class="tab-text">{{ tab.label }}</span>
-            </button>
+        <!-- Tab -->
+        <div class="pv-tabs">
+          <button v-for="tab in tabs" :key="tab.key" :class="['pv-tab', { active: activeTab === tab.key }]" @click="activeTab = tab.key">{{ tab.label }}</button>
+        </div>
+
+        <!-- 歌曲列表 -->
+        <div v-if="activeTab === 'songs'" class="pv-tab-content">
+          <div v-if="musicList.length === 0" class="pv-empty">该歌单暂无歌曲</div>
+          <div v-else class="pv-songs">
+            <div v-for="(m, i) in musicList" :key="m.id" class="pvs-row" :class="{ playing: currentSong?.id === m.id && isPlaying }" @click="playSongFromList(m)">
+              <div class="pvs-num">
+                <span v-if="currentSong?.id === m.id && isPlaying" class="pvs-eq"><i v-for="b in 3" :key="b"></i></span>
+                <span v-else class="pvs-idx">{{ String(i+1).padStart(2,'0') }}</span>
+              </div>
+              <div class="pvs-cover"><img v-if="m.coverFileUrl" :src="cleanUrl(m.coverFileUrl)" /><div v-else class="pvs-cover-empty"><svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(255,255,255,0.15)"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg></div></div>
+              <div class="pvs-info"><div class="pvs-title">{{ m.title }}</div><div class="pvs-artist">{{ m.artist }}</div></div>
+              <div class="pvs-actions">
+                <button :class="{ active: favoriteIds?.has(m.id) }" @click.stop="toggleLike(m)"><svg width="16" height="16" viewBox="0 0 24 24" :fill="favoriteIds?.has(m.id) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+                <button @click.stop="showMobileMore(m)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
+              </div>
+              <div class="pvs-dur">{{ formatDuration(m.duration) }}</div>
+            </div>
+            <div class="pv-song-count">共 {{ musicList.length }} 首歌曲</div>
           </div>
 
-          <div class="tab-content">
-            <!-- 歌曲列表 -->
-            <div v-if="activeTab === 'songs'" class="tab-panel">
-              <div v-if="musicList.length === 0" class="empty">
-                <p>该歌单暂无歌曲</p>
-              </div>
-              <MusicList
-                v-else
-                :music-list="musicList"
-                :favorite-ids="favoriteIds"
-                :on-play="handleSongPlay"
-                @like-toggle="handleLikeToggle"
-              />
-            </div>
-
-            <!-- 评论列表 - 完善版本 -->
-            <div v-else-if="activeTab === 'comments'" class="tab-panel">
-              <div class="comments-section">
-                <!-- 评论统计 -->
-                <div class="comment-stats">
-                  <h3>
-                    全部评论 <span class="comment-count">{{ commentCount }}</span>
-                  </h3>
+          <!-- 移动端更多面板 -->
+          <Teleport to="body">
+            <Transition name="sheet-slide">
+              <div v-if="mobileMore.visible" class="pv-sheet-overlay" @click="mobileMore.visible = false"><div class="pv-sheet" @click.stop>
+                <div class="pv-sheet-head"><img v-if="mobileMore.music?.coverFileUrl" :src="cleanUrl(mobileMore.music.coverFileUrl)" class="pv-sheet-cover" /><div><b>{{ mobileMore.music?.title }}</b><span>{{ mobileMore.music?.artist }}</span></div></div>
+                <div class="pv-sheet-acts">
+                  <div @click="sheetAction('next')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>下一首播放</div>
+                  <div @click="sheetAction('like')"><svg width="20" height="20" viewBox="0 0 24 24" :fill="favoriteIds?.has(mobileMore.music?.id) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>{{ favoriteIds?.has(mobileMore.music?.id) ? '取消喜欢' : '喜欢' }}</div>
+                  <div @click="sheetAction('download')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>下载</div>
+                  <div @click="sheetAction('comment')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>评论</div>
                 </div>
+                <div class="pv-sheet-cancel" @click="mobileMore.visible = false">取消</div>
+              </div></div>
+            </Transition>
+          </Teleport>
+        </div>
 
-                <!-- 评论输入框 -->
-                <div class="comment-input-section">
-                  <div class="input-container">
-                    <textarea
-                      v-model="commentText"
-                      placeholder="说点什么吧"
-                      class="comment-textarea"
-                      :maxlength="1000"
-                      rows="3"
-                    ></textarea>
-                    <div class="input-footer">
-                      <span class="char-count">{{ commentText.length }}/1000</span>
-                      <div class="input-actions">
-                        <button class="emoji-btn" @click="toggleEmojiPicker" title="表情">
-                          😊
-                        </button>
-                        <button class="mention-btn" @click="handleMention" title="@某人">@</button>
-                        <button class="hashtag-btn" @click="handleHashtag" title="话题">#</button>
-                        <button
-                          class="submit-btn"
-                          @click="submitComment"
-                          :disabled="!commentText.trim()"
-                        >
-                          发布
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 精彩评论 -->
-                <div v-if="hotComments.length > 0" class="hot-comments">
-                  <h4 class="section-title">精彩评论</h4>
-                  <div class="comment-list">
-                    <div
-                      v-for="comment in hotComments"
-                      :key="comment.id"
-                      class="comment-item hot-comment"
-                    >
-                      <div class="comment-avatar">
-                        <img
-                          :src="comment.user.avatar || '/default-avatar.jpg'"
-                          :alt="comment.user.username"
-                          @error="handleAvatarError"
-                        />
-                      </div>
-                      <div class="comment-content">
-                        <div class="comment-header">
-                          <span class="username">{{ comment.user.username }}</span>
-                        </div>
-                        <div class="comment-text">{{ comment.content }}</div>
-                        <div class="comment-footer">
-                          <span class="comment-time">{{ formatTime(comment.createTime) }}</span>
-                          <div class="comment-actions">
-                            <button
-                              class="action-btn like-btn"
-                              :class="{ active: comment.isLiked }"
-                              @click="toggleCommentLike(comment)"
-                            >
-                              <svg
-                                class="like-icon"
-                                :class="{ liked: comment.isLiked }"
-                                viewBox="0 0 24 24"
-                                width="16"
-                                height="16"
-                              >
-                                <path
-                                  d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                                />
-                              </svg>
-                              <span class="count">{{ formatCount(comment.likeCount) }}</span>
-                            </button>
-                            <button class="action-btn reply-btn" @click="replyToComment(comment)">
-                              <svg class="reply-icon" viewBox="0 0 24 24" width="16" height="16">
-                                <path
-                                  d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"
-                                />
-                              </svg>
-                              <span class="count">{{ comment.replyCount || '' }}</span>
-                            </button>
-                          </div>
-                        </div>
-                        <!-- 回复列表 -->
-                        <div v-if="comment.replies && comment.replies.length > 0" class="replies">
-                          <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
-                            <span class="reply-user">{{ reply.user.username }}</span>
-                            <span v-if="reply.replyToUsername" class="reply-to">
-                              回复 @{{ reply.replyToUsername }}：
-                            </span>
-                            <span class="reply-content">{{ reply.content }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 最新评论 -->
-                <div class="latest-comments">
-                  <h4 class="section-title">最新评论</h4>
-                  <div class="comment-list">
-                    <div v-for="comment in latestComments" :key="comment.id" class="comment-item">
-                      <div class="comment-avatar">
-                        <img
-                          :src="comment.user.avatarUrl || '/default-avatar.jpg'"
-                          :alt="comment.user.username"
-                          @error="handleAvatarError"
-                        />
-                      </div>
-                      <div class="comment-content">
-                        <div class="comment-header">
-                          <span class="username">{{ comment.user.username }}</span>
-                        </div>
-                        <div class="comment-text">{{ comment.content }}</div>
-                        <div class="comment-footer">
-                          <span class="comment-time">{{ formatTime(comment.createTime) }}</span>
-                          <div class="comment-actions">
-                            <button
-                              class="action-btn like-btn"
-                              :class="{ active: comment.isLiked }"
-                              @click="toggleCommentLike(comment)"
-                            >
-                              <svg
-                                class="like-icon"
-                                :class="{ liked: comment.isLiked }"
-                                viewBox="0 0 24 24"
-                                width="16"
-                                height="16"
-                              >
-                                <path
-                                  d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                                />
-                              </svg>
-                              <span class="count">{{ formatCount(comment.likeCount) }}</span>
-                            </button>
-                            <button class="action-btn reply-btn" @click="replyToComment(comment)">
-                              <svg class="reply-icon" viewBox="0 0 24 24" width="16" height="16">
-                                <path
-                                  d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"
-                                />
-                              </svg>
-                              <span class="count">{{ comment.replyCount || '' }}</span>
-                            </button>
-                          </div>
-                        </div>
-                        <!-- 回复列表 -->
-                        <div v-if="comment.replies && comment.replies.length > 0" class="replies">
-                          <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
-                            <span class="reply-user">{{ reply.user.username }}</span>
-                            <span v-if="reply.replyToUsername" class="reply-to">
-                              回复 @{{ reply.replyToUsername }}：
-                            </span>
-                            <span class="reply-content">{{ reply.content }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 空状态 -->
-                <div
-                  v-if="hotComments.length === 0 && latestComments.length === 0"
-                  class="empty-comments"
-                >
-                  <div class="empty-icon">💬</div>
-                  <p>还没有评论，快来抢沙发吧！</p>
-                </div>
+        <!-- 评论 -->
+        <div v-else-if="activeTab === 'comments'" class="pv-tab-content">
+          <div class="pv-comment-input">
+            <textarea v-model="commentText" placeholder="说点什么吧..." :maxlength="1000" rows="2"></textarea>
+            <div class="pv-comment-bar"><span>{{ commentText.length }}/1000</span><button class="pv-btn pv-btn-ok" @click="submitComment" :disabled="!commentText.trim()">发布</button></div>
+          </div>
+          <div v-if="hotComments.length" class="pv-comments">
+            <h4>精彩评论</h4>
+            <div v-for="c in hotComments" :key="c.id" class="pv-comment">
+              <img :src="c.user.avatar || '/default-avatar.jpg'" class="pv-comment-avatar" @error="handleAvatarError" />
+              <div class="pv-comment-body">
+                <div class="pv-comment-name">{{ c.user.username }}</div>
+                <div class="pv-comment-text">{{ c.content }}</div>
+                <div class="pv-comment-foot"><span>{{ formatTime(c.createTime) }}</span><button @click="toggleCommentLike(c)">赞 {{ c.likeCount || '' }}</button><button @click="replyToComment(c)">回复</button></div>
+                <div v-if="c.replies?.length" class="pv-replies"><div v-for="r in c.replies" :key="r.id" class="pv-reply"><b>{{ r.user.username }}</b><span v-if="r.replyToUsername"> 回复 @{{ r.replyToUsername }}</span>：{{ r.content }}</div></div>
               </div>
             </div>
-
-            <!-- 收藏者列表 -->
-            <div v-else-if="activeTab === 'collectors'" class="tab-panel">
-              <div class="collectors-section">
-                <div class="collectors-header">
-                  <h3>收藏者 ({{ collectors.length }})</h3>
-                </div>
-                <div v-if="collectors.length === 0" class="empty">
-                  <div class="empty-icon">👥</div>
-                  <p>暂无收藏者</p>
-                </div>
-                <div v-else class="collectors-list">
-                  <div v-for="collector in collectors" :key="collector.id" class="collector-item">
-                    <div class="collector-avatar">
-                      <img
-                        v-if="collector.avatarUrl"
-                        :src="collector.avatarUrl"
-                        :alt="collector.username"
-                        @error="handleAvatarError"
-                      />
-                      <div v-else class="avatar-placeholder">
-                        {{ collector.username ? collector.username.charAt(0).toUpperCase() : '?' }}
-                      </div>
-                    </div>
-                    <div class="collector-info">
-                      <div class="collector-main">
-                        <span class="collector-name">{{
-                          collector.username || collector.nickname || '匿名用户'
-                        }}</span>
-                        <span v-if="collector.userNumber" class="collector-number"
-                          >#{{ collector.userNumber }}</span
-                        >
-                      </div>
-                      <div class="collector-meta">
-                        <span v-if="collector.bio" class="collector-bio">{{ collector.bio }}</span>
-                        <span class="collector-time">{{
-                          formatCollectorTime(collector.favoriteTime)
-                        }}</span>
-                      </div>
-                    </div>
-                    <div class="collector-actions">
-                      <button class="follow-btn" @click="handleFollowUser(collector)">关注</button>
-                    </div>
-                  </div>
-                </div>
+          </div>
+          <div v-if="latestComments.length" class="pv-comments">
+            <h4>最新评论</h4>
+            <div v-for="c in latestComments" :key="c.id" class="pv-comment">
+              <img :src="c.user.avatarUrl || '/default-avatar.jpg'" class="pv-comment-avatar" @error="handleAvatarError" />
+              <div class="pv-comment-body">
+                <div class="pv-comment-name">{{ c.user.username }}</div>
+                <div class="pv-comment-text">{{ c.content }}</div>
+                <div class="pv-comment-foot"><span>{{ formatTime(c.createTime) }}</span><button @click="toggleCommentLike(c)">赞 {{ c.likeCount || '' }}</button><button @click="replyToComment(c)">回复</button></div>
+                <div v-if="c.replies?.length" class="pv-replies"><div v-for="r in c.replies" :key="r.id" class="pv-reply"><b>{{ r.user.username }}</b>：{{ r.content }}</div></div>
               </div>
+            </div>
+          </div>
+          <div v-if="!hotComments.length && !latestComments.length" class="pv-empty">暂无评论</div>
+        </div>
+
+        <!-- 收藏者 -->
+        <div v-else-if="activeTab === 'collectors'" class="pv-tab-content">
+          <div v-if="collectors.length === 0" class="pv-empty">暂无收藏者</div>
+          <div v-else class="pv-collectors">
+            <div v-for="c in collectors" :key="c.id" class="pv-collector">
+              <img v-if="c.avatarUrl" :src="c.avatarUrl" class="pv-collector-avatar" />
+              <div v-else class="pv-collector-avatar pv-avatar-placeholder">{{ c.username?.charAt(0)?.toUpperCase() || '?' }}</div>
+              <div class="pv-collector-info"><span class="pv-collector-name">{{ c.username || c.nickname || '匿名' }}</span><span class="pv-collector-time">{{ formatCollectorTime(c.favoriteTime) }}</span></div>
+              <button class="pv-btn" @click="handleFollowUser(c)">关注</button>
             </div>
           </div>
         </div>
-      </div>
+      </template>
     </div>
 
-    <!-- 添加Toast组件 -->
-    <Toast
-      :visible="toast.visible"
-      :message="toast.message"
-      :type="toast.type"
-      @close="closeToast"
-    />
+    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" @close="closeToast" />
   </div>
 </template>
 
@@ -476,6 +157,7 @@ import {
   postComment,
   toggleCommentLike as toggleCommentLikeAPI,
 } from '../api/comment'
+import { addMusicToFavorites, removeMusicFromFavorites } from '../api/user'
 import Toast from '../components/Toast.vue'
 
 const route = useRoute()
@@ -533,6 +215,7 @@ const audioStore = useAudioStore()
 const userStore = useUserStore()
 const { playSong } = audioStore
 const { favoriteIds } = storeToRefs(userStore)
+const { setPlaylist } = audioStore
 
 // 添加权限判断的计算属性
 const canEdit = computed(() => {
@@ -720,6 +403,16 @@ const toggleCollect = async () => {
     showToast('操作失败，请稍后重试', 'error')
   }
 }
+
+// 歌曲列表辅助
+const { currentSong, isPlaying } = storeToRefs(audioStore)
+const cleanUrl = (url) => url ? url.replace(/[\r\n\t]/g, '').trim() : ''
+const formatDuration = (d) => { if (!d) return ''; const m = Math.floor(d/60); const s = d%60; return `${m}:${String(s).padStart(2,'0')}` }
+const playSongFromList = (m) => { playSong({ id: m.id, title: m.title, artist: m.artist, url: m.fileUrl || m.url, cover: m.coverFileUrl || m.cover, duration: m.duration || 0 }, musicList.value) }
+const toggleLike = (m) => { if (favoriteIds.value?.has(m.id)) { userStore.removeFromFavorites(m.id); removeMusicFromFavorites(m.id).catch(()=>{}) } else { userStore.addToFavorites(m.id); addMusicToFavorites(m.id).catch(()=>{}) } }
+const mobileMore = ref({ visible: false, music: null })
+const showMobileMore = (m) => { mobileMore.value = { visible: true, music: m } }
+const sheetAction = (a) => { const m = mobileMore.value.music; if (!m) return; mobileMore.value.visible = false; if (a === 'next') { const list = [...audioStore.playlist]; list.splice(audioStore.currentIndex+1,0,{id:m.id,title:m.title,artist:m.artist,url:m.fileUrl||m.url,cover:m.coverFileUrl||m.cover,duration:m.duration}); audioStore.setPlaylist(list) } else if (a === 'like') toggleLike(m); else if (a === 'download') { if (m.fileUrl) window.open(cleanUrl(m.fileUrl), '_blank') } else if (a === 'comment') { router.push({ name: 'Comment', query: { id: m.id, type: 1 }, state: { musicInfo: { id: m.id, title: m.title, artist: m.artist, cover: m.coverFileUrl || m.cover } } }) } }
 
 // 处理喜欢切换
 const handleLikeToggle = ({ music, action, success, error }) => {
@@ -952,936 +645,153 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.playlist-view {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-  color: #ffffff;
-  font-family:
-    'SF Pro Display',
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
-  padding: 20px;
-  box-sizing: border-box;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-bottom: 100px;
+.pv-page {
+  width: 100%; height: 100%;
+  background: linear-gradient(160deg, #080c18, #0f1428, #0a0e1f);
+  color: #f1f5f9; overflow-y: auto; overflow-x: hidden;
+  padding: 16px 16px 130px; box-sizing: border-box;
 }
+.pv-loading, .pv-error { display: flex; align-items: center; justify-content: center; height: 60%; font-size: 16px; }
+.pv-error { color: #f87171; }
+.pv-empty { text-align: center; padding: 48px 20px; color: rgba(255,255,255,0.25); font-size: 14px; }
 
-/* 添加青色透明滚动条样式 */
-.playlist-view::-webkit-scrollbar {
-  width: 8px;
-}
+/* 按钮 */
+.pv-btn { padding: 9px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+.pv-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.pv-btn-ok { background: #6366f1; border-color: #6366f1; color: #fff; }
+.pv-btn-ok:hover { background: #4f46e5; }
+.pv-btn-play { background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none; color: #fff; display: flex; align-items: center; gap: 6px; }
+.pv-btn-collect.on { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3); color: #818cf8; }
 
-.playlist-view::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 4px;
-}
+/* 编辑 */
+.pv-edit { padding: 16px; }
+.pv-edit-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+.pv-edit-form { display: flex; flex-direction: column; gap: 14px; }
+.pv-field { display: flex; flex-direction: column; gap: 4px; }
+.pv-field label { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.4); }
+.pv-field input, .pv-field textarea, .pv-field select { padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #fff; font-size: 14px; outline: none; }
+.pv-field input:focus, .pv-field textarea:focus, .pv-field select:focus { border-color: #6366f1; }
+.pv-field textarea { resize: vertical; min-height: 80px; }
+.pv-count { font-size: 11px; color: rgba(255,255,255,0.3); text-align: right; }
+.pv-edit-cover img { width: 120px; height: 120px; border-radius: 12px; object-fit: cover; }
+.pv-edit-cover { margin: 8px 0; }
+.pv-cover-empty { width: 120px; height: 120px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px dashed rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 36px; }
+.pv-edit-actions { display: flex; gap: 10px; margin-top: 8px; }
 
-.playlist-view::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 255, 0.3);
-  border-radius: 4px;
-  transition: background 0.3s ease;
-}
+/* 头部 */
+.pv-header { display: flex; gap: 16px; margin-bottom: 20px; position: relative; }
+.pv-back { position: absolute; top: 6px; left: 6px; width: 32px; height: 32px; border: none; border-radius: 50%; background: rgba(0,0,0,0.55); backdrop-filter: blur(10px); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 5; }
+.pv-back:hover { background: rgba(0,0,0,0.75); }
+.pv-cover { width: 120px; height: 120px; border-radius: 16px; object-fit: cover; flex-shrink: 0; }
+.pv-header-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.pv-title { font-size: 20px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px; }
+.pv-edit-btn { background: none; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 4px 6px; color: rgba(255,255,255,0.4); cursor: pointer; }
+.pv-creator { display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.5); }
+.pv-creator-avatar { width: 20px; height: 20px; border-radius: 50%; }
+.pv-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: rgba(255,255,255,0.3); }
+.pv-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.pv-tag { padding: 2px 8px; border-radius: 10px; background: rgba(99,102,241,0.08); color: rgba(129,140,248,0.7); font-size: 10px; }
+.pv-desc { font-size: 13px; color: rgba(255,255,255,0.4); margin: 4px 0 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pv-actions { display: flex; gap: 10px; margin-top: 8px; }
 
-.playlist-view::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 255, 255, 0.5);
-}
+/* Tab */
+.pv-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 12px; }
+.pv-tab { flex: 1; padding: 10px 0; background: none; border: none; border-bottom: 2px solid transparent; color: rgba(255,255,255,0.35); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+.pv-tab.active { color: #818cf8; border-bottom-color: #818cf8; }
 
-.loading,
-.error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  font-size: 18px;
-}
+/* Tab 内容 */
+.pv-tab-content { padding: 8px 0; }
 
-.error {
-  color: #ff6b6b;
-}
+/* 歌曲计数 */
+.pv-song-count { text-align: center; padding: 16px 0; font-size: 12px; color: rgba(255,255,255,0.2); border-top: 1px solid rgba(255,255,255,0.04); margin-top: 8px; }
 
-.playlist-container {
-  min-height: calc(100vh - 208px);
-  display: flex;
-  flex-direction: column;
-  padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-/* 上半部分：歌单信息 */
-.playlist-header {
-  display: flex;
-  gap: 30px;
-  padding: 30px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  border-radius: 16px;
-  backdrop-filter: blur(10px);
-  margin-bottom: 24px;
-  flex-shrink: 0;
-}
-
-.playlist-cover img {
-  width: 200px;
-  height: 200px;
-  border-radius: 12px;
-  object-fit: cover;
-  box-shadow: 0 8px 32px rgba(0, 255, 255, 0.2);
-}
-
-.cover-placeholder {
-  width: 200px;
-  height: 200px;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 48px;
-}
-
-.playlist-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.playlist-name-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.playlist-name {
-  font-size: 32px;
-  font-weight: 600;
-  margin: 0;
-  background: linear-gradient(135deg, #00ffff 0%, #0080ff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.edit-btn {
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  border-radius: 8px;
-  padding: 8px;
-  color: #00ffff;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.edit-btn:hover {
-  background: rgba(0, 255, 255, 0.2);
-  transform: scale(1.05);
-}
-
-.creator-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.creator-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.creator-name {
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.create-time {
-  margin: 5px 0;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
-}
-
-.playlist-stats {
-  display: flex;
-  gap: 20px;
-  margin: 10px 0;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.description {
-  margin: 15px 0;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.playlist-tags {
-  margin-top: 10px;
-}
-
-.tags-label {
-  color: rgba(255, 255, 255, 0.7);
-  margin-right: 8px;
-}
-
-.tag-item {
-  display: inline-block;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  margin-right: 8px;
-  margin-bottom: 4px;
-  color: #00ffff;
-}
-
-.playlist-actions {
-  display: flex;
-  gap: 15px;
-  margin-top: 20px;
-}
-
-.play-all-btn {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 25px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-}
-
-.play-all-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
-}
-
-.collect-btn {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 12px 20px;
-  border-radius: 25px;
-  font-size: 14px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-}
-
-.collect-btn.collected {
-  background: rgba(255, 107, 107, 0.2);
-  border-color: #ff6b6b;
-  color: #ff6b6b;
-}
-
-.collect-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
-}
-
-.collect-btn.collected:hover {
-  background: rgba(255, 107, 107, 0.3);
-}
-
-.heart {
-  font-size: 16px;
-}
-
-/* 下半部分：Tab区域 */
-.playlist-tabs {
-  flex: 1;
-  min-height: 400px;
-  display: flex;
-  flex-direction: column;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  border-radius: 16px;
-  backdrop-filter: blur(10px);
-  overflow: hidden;
-}
-
-.tab-header {
-  display: flex;
-  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.tab-btn {
-  flex: 1;
-  background: transparent;
-  border: none;
-  padding: 16px 24px;
-  color: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  position: relative;
-}
-
-.tab-btn:hover {
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(0, 255, 255, 0.05);
-}
-
-.tab-btn.active {
-  color: #00ffff;
-  background: rgba(0, 255, 255, 0.1);
-}
-
-.tab-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(135deg, #00ffff 0%, #0080ff 100%);
-}
-
-.tab-icon {
-  font-size: 16px;
-}
-
-.tab-content {
-  flex: 1;
-  overflow: hidden;
-}
-
-.tab-panel {
-  height: 100%;
-  overflow-y: auto;
-  padding: 24px;
-}
-
-.tab-panel::-webkit-scrollbar {
-  width: 6px;
-}
-
-.tab-panel::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
-}
-
-.tab-panel::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 255, 0.3);
-  border-radius: 3px;
-}
-
-.empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 16px;
-}
-
-/* 评论样式 - 完善版本 */
-.comments-section {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-/* 评论统计 */
-.comment-stats {
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(0, 255, 255, 0.1);
-}
-
-.comment-stats h3 {
-  margin: 0;
-  font-size: 20px;
-  color: #ffffff;
-  font-weight: 600;
-}
-
-.comment-count {
-  color: #00ffff;
-  font-size: 18px;
-}
-
-/* 评论输入区域 */
-.comment-input-section {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  border-radius: 12px;
-  padding: 16px;
-}
-
-.input-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.comment-textarea {
-  width: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  border-radius: 8px;
-  padding: 12px;
-  color: #ffffff;
-  font-size: 14px;
-  line-height: 1.5;
-  resize: vertical;
-  min-height: 80px;
-  transition: all 0.3s ease;
-}
-
-.comment-textarea:focus {
-  outline: none;
-  border-color: #00ffff;
-  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
-}
-
-.comment-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.input-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.char-count {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.input-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.emoji-btn,
-.mention-btn,
-.hashtag-btn {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
-  padding: 6px 8px;
-  border-radius: 6px;
-  font-size: 16px;
-  transition: all 0.3s ease;
-}
-
-.emoji-btn:hover,
-.mention-btn:hover,
-.hashtag-btn:hover {
-  background: rgba(0, 255, 255, 0.1);
-  color: #00ffff;
-}
-
-.submit-btn {
-  background: linear-gradient(135deg, #00ffff 0%, #0080ff 100%);
-  color: #000000;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.submit-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
-}
-
-.submit-btn:disabled {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.4);
-  cursor: not-allowed;
-}
-
-/* 评论区域标题 */
-.section-title {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  color: #00ffff;
-  font-weight: 600;
-}
+/* 评论输入 */
+.pv-comment-input { margin-bottom: 16px; }
+.pv-comment-input textarea { width: 100%; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; color: #fff; font-size: 14px; outline: none; resize: vertical; box-sizing: border-box; }
+.pv-comment-input textarea:focus { border-color: #6366f1; }
+.pv-comment-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 11px; color: rgba(255,255,255,0.3); }
 
 /* 评论列表 */
-.comment-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.comment-item {
-  display: flex;
-  gap: 12px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
-  border: 1px solid rgba(0, 255, 255, 0.1);
-  transition: all 0.3s ease;
-}
-
-.comment-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(0, 255, 255, 0.2);
-}
-
-.hot-comment {
-  border-color: rgba(255, 215, 0, 0.3);
-  background: rgba(255, 215, 0, 0.05);
-}
-
-.comment-avatar {
-  flex-shrink: 0;
-}
-
-.comment-avatar img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.comment-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.comment-header {
-  margin-bottom: 8px;
-}
-
-.username {
-  font-weight: 500;
-  color: #00ffff;
-  font-size: 14px;
-}
-
-.comment-text {
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.5;
-  margin-bottom: 12px;
-  word-wrap: break-word;
-  white-space: pre-wrap; /* 添加这行来保持换行符 */
-}
-
-.comment-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.comment-time {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.comment-actions {
-  display: flex;
-  gap: 16px;
-}
-
-.action-btn {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.5);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  transition: all 0.3s ease;
-}
-
-.action-btn:hover {
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.like-btn.active {
-  color: #ff6b6b;
-}
-
-.like-icon {
-  fill: currentColor;
-  transition: all 0.3s ease;
-}
-
-.like-icon.liked {
-  fill: #ff6b6b;
-}
-
-.reply-icon {
-  fill: currentColor;
-}
-
-.count {
-  font-size: 12px;
-}
-
-/* 回复列表 */
-.replies {
-  margin-top: 12px;
-  padding-left: 16px;
-  border-left: 2px solid rgba(0, 255, 255, 0.1);
-}
-
-.reply-item {
-  padding: 8px 0;
-  font-size: 13px;
-  line-height: 1.4;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.reply-user {
-  color: #00ffff;
-  font-weight: 500;
-}
-
-.reply-to {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.reply-content {
-  color: rgba(255, 255, 255, 0.9);
-  white-space: pre-wrap; /* 添加这行来保持换行符 */
-}
-
-/* 空状态 */
-.empty-comments {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-}
-
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-comments p {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 16px;
-  margin: 0;
-}
-
-/* 热门评论和最新评论区域 */
-.hot-comments,
-.latest-comments {
-  margin-bottom: 24px;
-}
-
-.hot-comments:last-child,
-.latest-comments:last-child {
-  margin-bottom: 0;
-}
-
-.privacy-status {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #a0a0a0;
-  font-size: 13px;
-}
-
-.privacy-status.private {
-  color: #ff6b6b;
-}
-
-.privacy-status svg {
-  flex-shrink: 0;
-}
-
-/* 收藏者样式 */
-.collectors-section {
-  padding: 20px 0;
-}
-
-.collectors-header {
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.collectors-header h3 {
-  color: #fff;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.collectors-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.collector-item {
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  transition: all 0.2s ease;
-}
-
-.collector-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
-}
-
-.collector-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  overflow: hidden;
-  margin-right: 16px;
-  flex-shrink: 0;
-}
-
-.collector-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: bold;
-  font-size: 18px;
-}
-
-.collector-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.collector-main {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.collector-name {
-  color: #fff;
-  font-weight: 500;
-  font-size: 16px;
-}
-
-.collector-number {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 12px;
-}
-
-.collector-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.collector-bio {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.collector-time {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 12px;
-}
-
-.collector-actions {
-  margin-left: 16px;
-}
-
-.follow-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.follow-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-}
-
-/* 编辑模式样式 */
-.edit-playlist {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  border-radius: 16px;
-  padding: 30px;
-  backdrop-filter: blur(10px);
-  margin: 24px;
-}
-
-.edit-title {
-  color: #00ffff;
-  margin-bottom: 24px;
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.edit-container {
-  display: grid;
-  grid-template-columns: 1fr 200px;
-  gap: 30px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 500;
-}
-
-.form-input,
-.form-textarea,
-.form-select {
-  width: 100%;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 14px;
-  transition: all 0.3s ease;
-}
-
-.form-input:focus,
-.form-textarea:focus,
-.form-select:focus {
-  outline: none;
-  border-color: #00ffff;
-  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
-}
-
-.char-count {
-  display: block;
-  text-align: right;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-top: 4px;
-}
-
-.form-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.save-btn,
-.cancel-btn {
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.save-btn {
-  background: linear-gradient(135deg, #00ffff 0%, #0080ff 100%);
-  color: #000000;
-  border: none;
-}
-
-.save-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 255, 255, 0.3);
-}
-
-.cancel-btn {
-  background: transparent;
-  color: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.cancel-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
-}
-
-@media (max-width: 768px) {
-  .playlist-header {
-    flex-direction: column;
-    text-align: center;
-    gap: 20px;
-  }
-
-  .playlist-cover img,
-  .cover-placeholder {
-    width: 150px;
-    height: 150px;
-    margin: 0 auto;
-  }
-
-  .playlist-name {
-    font-size: 24px;
-  }
-
-  .playlist-actions {
-    justify-content: center;
-  }
-
-  .tab-btn {
-    padding: 12px 16px;
-    font-size: 12px;
-  }
-
-  .collectors-list {
-    grid-template-columns: 1fr;
-  }
+.pv-comments h4 { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.5); margin: 16px 0 10px; }
+.pv-comment { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.pv-comment-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.pv-comment-body { flex: 1; min-width: 0; }
+.pv-comment-name { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.7); }
+.pv-comment-text { font-size: 14px; color: rgba(255,255,255,0.6); margin: 4px 0; white-space: pre-wrap; word-break: break-word; }
+.pv-comment-foot { display: flex; gap: 16px; font-size: 11px; color: rgba(255,255,255,0.3); }
+.pv-comment-foot button { background: none; border: none; color: rgba(255,255,255,0.3); cursor: pointer; font-size: 11px; padding: 2px 4px; }
+.pv-replies { margin-top: 6px; padding-left: 12px; border-left: 2px solid rgba(255,255,255,0.04); }
+.pv-reply { font-size: 12px; color: rgba(255,255,255,0.5); padding: 3px 0; }
+.pv-reply b { color: rgba(255,255,255,0.6); }
+
+/* 收藏者 */
+.pv-collectors { display: flex; flex-direction: column; gap: 8px; }
+.pv-collector { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: rgba(255,255,255,0.02); border-radius: 12px; }
+.pv-collector-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.pv-avatar-placeholder { background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
+.pv-collector-info { flex: 1; min-width: 0; }
+.pv-collector-name { font-size: 14px; font-weight: 500; display: block; }
+.pv-collector-time { font-size: 11px; color: rgba(255,255,255,0.3); }
+
+/* 歌曲列表行 */
+.pvs-row { display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: 10px; cursor: pointer; transition: background 0.15s; }
+.pvs-row:hover { background: rgba(255,255,255,0.02); }
+.pvs-row:active { background: rgba(255,255,255,0.04); }
+.pvs-row.playing { background: rgba(99,102,241,0.06); }
+.pvs-num { width: 28px; text-align: center; flex-shrink: 0; }
+.pvs-idx { font-size: 12px; color: rgba(255,255,255,0.25); font-variant-numeric: tabular-nums; }
+.pvs-eq { display: flex; align-items: flex-end; gap: 1.5px; height: 14px; justify-content: center; }
+.pvs-eq i { width: 2.5px; background: #818cf8; border-radius: 1px; animation: eqPulse 0.7s ease-in-out infinite; }
+.pvs-eq i:nth-child(1) { height: 8px; }
+.pvs-eq i:nth-child(2) { height: 14px; animation-delay: 0.12s; }
+.pvs-eq i:nth-child(3) { height: 10px; animation-delay: 0.24s; }
+@keyframes eqPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+.pvs-cover { width: 40px; height: 40px; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+.pvs-cover img { width: 100%; height: 100%; object-fit: cover; }
+.pvs-cover-empty { width: 100%; height: 100%; background: rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: center; }
+.pvs-info { flex: 1; min-width: 0; }
+.pvs-title { font-size: 13px; font-weight: 500; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pvs-artist { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pvs-actions { display: flex; gap: 2px; flex-shrink: 0; opacity: 0; transition: opacity 0.15s; }
+.pvs-row:hover .pvs-actions { opacity: 1; }
+.pvs-actions button { width: 30px; height: 30px; border: none; border-radius: 50%; background: transparent; color: rgba(255,255,255,0.35); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.pvs-actions button:hover { background: rgba(255,255,255,0.06); color: #fff; }
+.pvs-actions button.active { color: #f87171; }
+.pvs-dur { font-size: 11px; color: rgba(255,255,255,0.25); width: 36px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+
+/* 移动端更多面板 */
+.pv-sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: flex-end; justify-content: center; }
+.pv-sheet { width: 100%; max-width: 500px; max-height: 65vh; background: linear-gradient(180deg, #1e1e3a, #14142a); border-radius: 20px 20px 0 0; padding: 0 0 20px; }
+.pv-sheet-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.pv-sheet-head b { font-size: 14px; display: block; }
+.pv-sheet-head span { font-size: 11px; color: rgba(255,255,255,0.35); }
+.pv-sheet-cover { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; }
+.pv-sheet-acts div { display: flex; align-items: center; gap: 14px; padding: 15px 24px; font-size: 14px; cursor: pointer; color: #e8e8f0; }
+.pv-sheet-acts div:active { background: rgba(255,255,255,0.03); }
+.pv-sheet-acts svg { color: rgba(255,255,255,0.4); }
+.pv-sheet-cancel { margin: 8px 20px 0; padding: 14px; text-align: center; background: rgba(255,255,255,0.04); border-radius: 12px; font-size: 15px; color: rgba(255,255,255,0.5); cursor: pointer; }
+.sheet-slide-enter-active { transition: all 0.3s ease; }
+.sheet-slide-leave-active { transition: all 0.25s ease; }
+.sheet-slide-enter-from .pv-sheet, .sheet-slide-leave-to .pv-sheet { transform: translateY(100%); }
+.sheet-slide-enter-from, .sheet-slide-leave-to { opacity: 0; }
+
+.pv-page::-webkit-scrollbar { width: 3px; }
+.pv-page::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 2px; }
+
+/* 桌面 */
+@media (min-width: 769px) {
+  .pv-page { padding: 24px 32px 40px; max-width: 900px; margin: 0 auto; }
+  .pv-cover { width: 180px; height: 180px; }
+  .pv-title { font-size: 28px; }
+}
+
+@media (max-width: 480px) {
+  .pv-page { padding: 12px 10px 130px; }
+  .pv-cover { width: 100px; height: 100px; border-radius: 14px; }
+  .pv-title { font-size: 18px; }
+  .pv-header { gap: 12px; }
+  .pvs-dur { display: none; }
+  .pvs-actions { opacity: 1; }
+  .pvs-row { padding: 8px 6px; gap: 6px; }
 }
 </style>

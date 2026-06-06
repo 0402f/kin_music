@@ -1,0 +1,19 @@
+{
+  "name": "kin-music-proxy",
+  "version": "1.0.0",
+  "description": "基于 LX Music 音源的多平台音乐代理",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "axios": "^1.16.1",
+    "big-integer": "^1.6.52",
+    "cheerio": "^1.2.0",
+    "crypto-js": "^4.2.0",
+    "dayjs": "^1.11.21",
+    "express": "^4.21.0",
+    "he": "^1.2.0",
+    "qs": "^6.15.2"
+  }
+}

@@ -139,6 +139,15 @@
           <div class="col-duration">
             {{ formatDuration(music.duration) || '03:12' }}
           </div>
+
+          <!-- 移动端更多按钮 -->
+          <div class="col-more-mobile">
+            <button class="more-mobile-btn" @click.stop="openMobileSheet(music)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -287,6 +296,70 @@
           </div>
         </div>
       </div>
+    </Teleport>
+
+    <!-- 移动端底部弹出操作面板 -->
+    <Teleport to="body">
+      <Transition name="sheet-slide">
+        <div v-if="mobileSheet.visible" class="mobile-sheet-overlay" @click="closeMobileSheet">
+          <div class="mobile-sheet" @click.stop>
+            <!-- 拖拽指示条 -->
+            <div class="ms-handle"><div class="ms-handle-bar"></div></div>
+
+            <!-- 歌曲信息头部 -->
+            <div class="ms-header">
+              <img v-if="mobileSheet.music?.coverFileUrl" :src="cleanUrl(mobileSheet.music.coverFileUrl)" class="ms-cover" />
+              <div class="ms-info">
+                <div class="ms-title">{{ mobileSheet.music?.title }}</div>
+                <div class="ms-artist">{{ mobileSheet.music?.artist }}</div>
+              </div>
+            </div>
+
+            <!-- 操作列表 -->
+            <div class="ms-actions">
+              <div class="msa-item" @click="handleSheetAction('next')">
+                <span class="msa-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                </span>
+                <span class="msa-text">下一首播放</span>
+              </div>
+              <div class="msa-item" @click="handleSheetAction('like')">
+                <span class="msa-icon" :class="{ active: isFavorite(mobileSheet.music?.id) }">
+                  <svg width="20" height="20" viewBox="0 0 24 24" :fill="isFavorite(mobileSheet.music?.id) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </span>
+                <span class="msa-text">{{ isFavorite(mobileSheet.music?.id) ? '取消喜欢' : '喜欢' }}</span>
+              </div>
+              <div class="msa-item" @click="handleSheetAction('playlist')">
+                <span class="msa-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </span>
+                <span class="msa-text">收藏到歌单</span>
+              </div>
+              <div class="msa-item" @click="handleSheetAction('download')">
+                <span class="msa-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </span>
+                <span class="msa-text">下载</span>
+              </div>
+              <div class="msa-item" @click="handleSheetAction('comment')">
+                <span class="msa-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </span>
+                <span class="msa-text">评论</span>
+              </div>
+              <div class="msa-item" @click="handleSheetAction('share')">
+                <span class="msa-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                </span>
+                <span class="msa-text">分享</span>
+              </div>
+            </div>
+
+            <!-- 取消 -->
+            <div class="ms-cancel" @click="closeMobileSheet">取消</div>
+          </div>
+        </div>
+      </Transition>
     </Teleport>
   </div>
 </template>
@@ -545,6 +618,26 @@ const handleComment = (music) => {
       },
     },
   })
+}
+
+// --- 移动端底部弹出操作面板 ---
+const mobileSheet = ref({ visible: false, music: null })
+
+const openMobileSheet = (music) => { mobileSheet.value = { visible: true, music } }
+const closeMobileSheet = () => { mobileSheet.value = { visible: false, music: null } }
+
+const handleSheetAction = (action) => {
+  const music = mobileSheet.value.music
+  if (!music) return
+  closeMobileSheet()
+  switch (action) {
+    case 'next': { const list = [...audioStore.playlist]; const idx = audioStore.currentIndex; if (idx >= 0) { list.splice(idx + 1, 0, { id: music.id, title: music.title, artist: music.artist, album: music.album, duration: music.duration, url: music.fileUrl || music.url, cover: music.coverFileUrl || music.cover }); audioStore.setPlaylist(list); showToastMessage('已添加到下一首', 'success'); } break }
+    case 'like': toggleLike(music); break
+    case 'playlist': handleAddToPlaylist(music); break
+    case 'download': handleDownload(music); break
+    case 'comment': handleComment(music); break
+    case 'share': showToastMessage('分享功能开发中', 'info'); break
+  }
 }
 
 const handleMore = (music) => {
@@ -972,14 +1065,16 @@ const removeFromFavorites = async (music) => {
 @media (max-width: 768px) {
   .list-header,
   .music-item {
-    grid-template-columns: 50px 1fr 60px;
-    gap: 12px;
+    grid-template-columns: 46px 1fr 40px 36px;
+    gap: 8px;
   }
 
   .col-album,
   .col-duration {
     display: none;
   }
+
+  .col-like { justify-content: center; }
 
   .action-buttons {
     right: -5px;
@@ -1351,5 +1446,107 @@ const removeFromFavorites = async (music) => {
   left: auto !important;
   transform: none !important;
   z-index: 10002 !important;
+}
+
+/* ===================== 移动端底部操作面板 ===================== */
+.col-more-mobile { display: none; align-items: center; justify-content: center; }
+
+.more-mobile-btn {
+  width: 32px; height: 32px;
+  border: none; border-radius: 50%;
+  background: transparent;
+  color: rgba(255,255,255,0.35);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+
+.mobile-sheet-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 10000;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+
+.mobile-sheet {
+  width: 100%; max-width: 500px;
+  max-height: 75vh;
+  background: linear-gradient(180deg, #1e1e3a 0%, #14142a 100%);
+  border-radius: 20px 20px 0 0;
+  padding: 0 0 24px;
+  display: flex; flex-direction: column;
+}
+
+.ms-handle {
+  display: flex; justify-content: center;
+  padding: 12px 0 8px;
+}
+
+.ms-handle-bar {
+  width: 36px; height: 4px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+}
+
+.ms-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 20px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.ms-cover {
+  width: 48px; height: 48px;
+  border-radius: 10px; object-fit: cover;
+  flex-shrink: 0;
+}
+
+.ms-info { min-width: 0; }
+.ms-title { font-size: 15px; font-weight: 600; color: #edf0f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ms-artist { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+.ms-actions { padding: 8px 0; }
+
+.msa-item {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 24px;
+  cursor: pointer; transition: background 0.15s;
+}
+.msa-item:hover { background: rgba(255,255,255,0.03); }
+.msa-item:active { background: rgba(255,255,255,0.06); }
+
+.msa-icon {
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.5);
+}
+.msa-icon.active { color: #ff4757; }
+
+.msa-text { font-size: 15px; color: #edf0f5; }
+
+.ms-cancel {
+  margin: 8px 20px 0;
+  padding: 14px;
+  text-align: center;
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px;
+  font-size: 15px; color: rgba(255,255,255,0.5);
+  cursor: pointer;
+}
+.ms-cancel:active { background: rgba(255,255,255,0.08); }
+
+/* 底部弹出动画 */
+.sheet-slide-enter-active { transition: all 0.3s ease; }
+.sheet-slide-leave-active { transition: all 0.25s ease; }
+.sheet-slide-enter-from .mobile-sheet,
+.sheet-slide-leave-to .mobile-sheet { transform: translateY(100%); }
+.sheet-slide-enter-from { opacity: 0; }
+.sheet-slide-enter-to { opacity: 1; }
+.sheet-slide-leave-to { opacity: 0; }
+.sheet-slide-enter-to .mobile-sheet,
+.sheet-slide-leave-from .mobile-sheet { transform: translateY(0); }
+
+/* 移动端显示更多按钮 */
+@media (max-width: 768px) {
+  .col-more-mobile { display: flex; }
+  .col-duration { display: none; }
 }
 </style>
